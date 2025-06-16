@@ -5,22 +5,23 @@ from cryptography.hazmat.primitives import serialization
 
 from exceptions import ConflictError
 
-def register(username: str)->str:
-    path = Path('files') / 'users.json'
+def load_users(path):
     path.parent.mkdir(parents=True, exist_ok=True)
 
     if path.exists():
         try:
             with open(path) as f:
-                users = json.load(f)
+                return json.load(f)
         except json.JSONDecodeError:
-            users = []
+            return []
     else:
-        users = []
+        return []
 
+def check_for_duplicate_user_names(users, username):
     if any(u['username'] == username for u in users):
         raise ConflictError
     
+def generate_pem_format_key_pair():
     private_key = rsa.generate_private_key(
         public_exponent=65537,
         key_size=1024
@@ -36,11 +37,24 @@ def register(username: str)->str:
         encoding=serialization.Encoding.PEM,
         format=serialization.PublicFormat.SubjectPublicKeyInfo
     )
+    return private_pem, public_pem
+
+def dump_username_to_file(path, users):
+    with open(path, 'w') as f:
+        json.dump(users, f, indent=2)
+
+
+def register_user(username: str)->str:
+    path = Path('files') / 'users.json'
+    users = load_users()
+
+    check_for_duplicate_user_names(users, username)
+    
+    private_pem, public_pem = generate_pem_format_key_pair()
 
     users.append({"username": username, "public_key": public_pem.decode()})
 
-    # with open(path, 'w') as f:
-    #     json.dump(users, f, indent=2)
+    dump_username_to_file(path, users)
 
     return {
     "username": username,

@@ -1,8 +1,8 @@
 from pathlib import Path
 import json
-from typing import List, Dict
+from MailBox import User
 
-def load_users()->List[Dict[str, str, str, str]]:
+def load_users()->list[User]:
     path = Path('files') / 'users.json'
     path.parent.mkdir(parents=True, exist_ok=True)
 

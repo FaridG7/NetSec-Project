@@ -62,11 +62,3 @@ def register_user(username: str)->str:
     "private_key": private_pem.decode(),
     "note": "Save your private key somewhere safe. It won't be stored."
 }
-
-
-
-# try:
-#     result = register('test4')
-#     print(result['private_key'])
-# except ConflictError:
-#     print('Username already exists.')

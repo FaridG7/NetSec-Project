@@ -3,7 +3,12 @@ from typing import TypedDict
 from rich.console import Console
 from rich.progress import Progress
 
-from modules import load_options, load_users, login
+from modules.CreateNewRoom import CreateNewRoom
+from modules.LoadOptions import LoadOptions
+from modules.LoadUsers import LoadUsers
+from modules.Login import Login
+from modules.Register import Register
+from modules.SafeUtils import SafeUtils
 from modules.exceptions import LoginFailed
 
 class User(TypedDict):
@@ -12,7 +17,7 @@ class User(TypedDict):
     salt: str
     public_key: str
 
-class MailBox:
+class MailBox(LoadOptions, LoadUsers, Login, Register, SafeUtils, CreateNewRoom):
     console: Console
     user: User | None
     users: list[User]
@@ -20,9 +25,9 @@ class MailBox:
     cached_private_key: str
 
     def __init__(self):
-        self.options = load_options()
+        self.options = self.load_options()
         self.user = None
-        self.users = load_users()
+        self.users = self.laod_users()
         self.console = Console()
 
     def run(self)->None:
@@ -39,11 +44,15 @@ class MailBox:
         ).ask()
     
     def prompt_user_for_an_action(self,actions:list[str]):
-        message="Choose an Action"
-        return self.prompt_user(message, actions)
+        return self.prompt_user("Choose an Action", actions)
     
     def anonymous_shell(self)->None:
         actions = ["exit", "login","register"]
+        action_map = {
+            "exit": self.handle_exit,
+            "login": self.handle_login,
+            "register": self.handle_register
+        }
         action = self.prompt_user_for_an_action(actions)
         match action:
             case "exit":
@@ -60,7 +69,7 @@ class MailBox:
             self.user = login(self.users, username, password)
             self.console.print("[bold green]Login Successful[/bold green]")
         except LoginFailed as e:
-            self.console.print(e.message)
+            self.console.print(f"[bold red]{e.message}[/bold red]")
 
     def register_shell()->None:
         pass

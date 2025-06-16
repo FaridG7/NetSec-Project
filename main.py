@@ -7,7 +7,7 @@ import questionary
 
 from modules.exceptions import ConflictError
 from modules.login import login
-from actions import actions
+from user_actions import user_actions
 
 console = Console()
 
@@ -20,7 +20,7 @@ def select_action(actions):
 def main():
     console.print("[bold yellow]📅 MailBox(My Network Security Class Project)[/bold yellow]")
     login()
-    action = select_action(actions)
+    action = select_action(user_actions)
 
 
 if __name__ == "__main__":

@@ -1,7 +1,8 @@
 from modules.MailBox import MailBox
-from modules.exceptions import LoginFailed
+
 def main():
-    MailBox.run()
+    app = MailBox()
+    app.run()
     
 if __name__ == "__main__":
     main()

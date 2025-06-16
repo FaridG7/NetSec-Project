@@ -1,6 +1,6 @@
 from pathlib import Path
 import json
-from MailBox import User
+from modules.User import User
 
 class LoadUsers:
     def laod_users(self)->list[User]:

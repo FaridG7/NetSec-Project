@@ -1,8 +1,7 @@
 import hashlib
 
-from MailBox import User
-from modules.LoadUsers import load_users
-from exceptions import LoginFailed
+from modules.User import User
+from modules.exceptions import LoginFailed
 
 class Login:
     def find_matched_user(self, username:str, users:list[User])->User | None:
@@ -15,8 +14,7 @@ class Login:
         return new_hash == stored_hash
 
     def login(self, users:list[User], username: str, password:str)->User:  
-        users = load_users()
-        matched_user = self.find_matched_user(username,users)
+        matched_user = self.find_matched_user(username, users)
         if not matched_user:
             raise LoginFailed
         if self.verify_password(password, matched_user['password'], matched_user['salt']):

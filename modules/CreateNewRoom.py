@@ -1,4 +1,4 @@
-from MailBox import User
+from modules.User import User
 
 class CreateNewRoom:
     def create_new_room(self, creator:User, invitedMembers:list[User]):  

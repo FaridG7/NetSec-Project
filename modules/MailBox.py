@@ -3,17 +3,18 @@ import time
 from rich.console import Console
 from rich.progress import Progress
 from rich.prompt import Prompt
-
-from modules.User import User
-from modules.CreateNewRoom import CreateNewRoom
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import rsa
+from cryptography.exceptions import UnsupportedAlgorithm, InvalidKey
+from modules.types import User
 from modules.LoadOptions import LoadOptions
 from modules.LoadUsers import LoadUsers
 from modules.Login import Login
 from modules.Register import Register
-from modules.SafeUtils import SafeUtils
+from modules.Safe import SafeHandler
 from modules.exceptions import BadInput, ConflictError, LoginFailed
 
-class MailBox(LoadOptions, LoadUsers, Login, Register, SafeUtils, CreateNewRoom):
+class MailBox(LoadOptions, LoadUsers, Login, Register, SafeHandler):
     console: Console
     user: User | None
     users: list[User]
@@ -62,6 +63,18 @@ class MailBox(LoadOptions, LoadUsers, Login, Register, SafeUtils, CreateNewRoom)
         self.console.print("[cyan]Bye👋")
         exit(0)
 
+    def is_valid_private_key(self, private_key:str):
+        try:
+            private_key = serialization.load_pem_private_key(
+                private_key.encode(),
+                password=None,
+            )
+            if isinstance(private_key, rsa.RSAPrivateKey):
+                return private_key.key_size == 1024
+            return False
+        except (ValueError, UnsupportedAlgorithm, InvalidKey):
+            return False
+
     def login_shell(self)->None:
         username = self.console.input("[bold yellow]Enter Username[/bold yellow][bold orange](enter 0 to abort):[/bold orange] ")
         if username == '0':
@@ -73,7 +86,7 @@ class MailBox(LoadOptions, LoadUsers, Login, Register, SafeUtils, CreateNewRoom)
             with Progress() as progress:
                 login_progress = progress.add_task("[cyan]Loggining in...", total=1)
                 time.sleep(0.5)
-                self.user = self.login(self.users, username, password)
+                user = self.login(self.users, username, password)
                 progress.update(login_progress, advance=1)
                 self.console.print("[green]Login Successful[/green]")
                 load_private_key_progress = progress.add_task("[cyan]Loading Private Key...", total=1)
@@ -81,9 +94,19 @@ class MailBox(LoadOptions, LoadUsers, Login, Register, SafeUtils, CreateNewRoom)
                 self.cached_private_key = self.load_private_key(self.user["username"], self.user['password'], bytes.fromhex(self.user["salt"]))
                 progress.update(load_private_key_progress, advance=1)
                 if self.cached_private_key:
+                    self.user = user
                     self.console.print("[green]Locally Saved Private Key Stored[/green]")
                 else:
                     self.console.print("[yellow]Locally Saved Private Key Not Found[/yellow]")
+                    while True:
+                        private_key = self.console.input("[bold]Please Enter Your Private Key(in PEM format)[orange]:[/orange][/bold]")
+                        if private_key == '0':
+
+                            return
+                        elif self.is_valid_private_key(private_key):
+                            self.cached_private_key = private_key
+                            break
+                        self.console.print("[yellow]Your Private Key doesn't have a valid PEM format.[/yellow]")
         except LoginFailed as e:
             self.console.print(f"[bold red]{e.message}[/bold red]")
 
@@ -149,7 +172,6 @@ class MailBox(LoadOptions, LoadUsers, Login, Register, SafeUtils, CreateNewRoom)
         action_map = {
             "Send a message": self.exit_shell,
             "Inbox": self.login_shell,
-            "Create a new chat room": self.register_shell,
             "Change password": self.register_shell,
             "Logout": self.logout
         }

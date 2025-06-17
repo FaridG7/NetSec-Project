@@ -3,13 +3,12 @@ import os
 import json
 import hashlib
 from pathlib import Path
-from cryptography.hazmat.primitives.asymmetric import rsa
-from cryptography.hazmat.primitives import serialization
 
-from modules.User import User
+from modules.RSA import RSA
+from modules.types import User
 from modules.exceptions import BadInput, ConflictError
 
-class Register:
+class Register(RSA):
     def is_duplicate_user_name(self, users: list[User], username: str) -> bool:
         return any(u['username'] == username for u in users)
 
@@ -26,31 +25,13 @@ class Register:
             return False
         return True
 
-    def generate_pem_format_key_pair(self) -> tuple[bytes, bytes]:
-        private_key = rsa.generate_private_key(
-            public_exponent=65537,
-            key_size=1024
-        )
-
-        private_pem = private_key.private_bytes(
-            encoding=serialization.Encoding.PEM,
-            format=serialization.PrivateFormat.TraditionalOpenSSL,
-            encryption_algorithm=serialization.NoEncryption()
-        )
-
-        public_pem = private_key.public_key().public_bytes(
-            encoding=serialization.Encoding.PEM,
-            format=serialization.PublicFormat.SubjectPublicKeyInfo
-        )
-        return private_pem, public_pem
-
     def hash_password(self, password:str)->tuple[str, bytes]:
         salt = os.urandom(16)
         salted_password = salt + password.encode()
         hash_digest = hashlib.sha256(salted_password).hexdigest()
         return hash_digest, salt.hex()
 
-    def dump_username_to_file(self, path: Path, users: list[User]) -> None:
+    def dump_users_to_file(self, path: Path, users: list[User]) -> None:
         with open(path, 'w') as f:
             json.dump(users, f, indent=2)
 
@@ -68,7 +49,7 @@ class Register:
         users.append(user)
 
         path = Path('files') / 'users.json'
-        self.dump_username_to_file(path, users)
+        self.dump_users_to_file(path, users)
 
         return {
             "user": user,

@@ -13,6 +13,7 @@ class LoadOptions:
                 with open(path) as f:
                     options =  json.load(f)
                     #TODO: validate options format
+                    return options
             except json.JSONDecodeError:
                 raise BadOptionsFormat
         else:

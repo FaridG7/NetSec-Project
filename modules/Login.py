@@ -1,6 +1,6 @@
 import hashlib
 
-from modules.User import User
+from modules.types import User
 from modules.exceptions import LoginFailed
 
 class Login:

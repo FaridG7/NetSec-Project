@@ -1,8 +1,0 @@
-[
-  {
-    "username": "test",
-    "password": "58ade6f9684f30d77de8aab2116f48c35e290602c0065d8240f182612fe05778",
-    "salt": "8722005c30aee067f8850ef506e02a95",
-    "public_key": "-----BEGIN PUBLIC KEY-----\nMIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDUPG5uRazazjfi9aO/ktEhRras\nq2hjB2Qq6XALQtpCLvK9pT3kcBy54ZcNl4HKYYbwjeimrFp/2jDWQBWYhIXxFdq2\nf+kPErZ9Kqh+oqWcnffs7kuGVV/fYQIVYu555eXCmGZtuhFhfN4RWge24asDIn9W\noJWBMpwUFKbCTJU90QIDAQAB\n-----END PUBLIC KEY-----\n"
-  }
-]

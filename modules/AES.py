@@ -5,21 +5,24 @@ from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from base64 import b64encode, b64decode
 
 class AES:
-    def derive_key_and_iv_from_a_text_and_salt(self, text: str, salt: bytes, iterations: int = 100_000):
+    @staticmethod
+    def derive_key_and_iv_from_two_texts(self, text: str, salt_hex: str, iterations: int = 100_000):
         kdf = PBKDF2HMAC(
             algorithm=hashes.SHA256(),
             length=48,
-            salt=salt,
+            salt=bytes.fromhex(salt_hex),
             iterations=iterations,
         )
         key_iv = kdf.derive(text.encode())
         return key_iv[:32], key_iv[32:]
+    
     @staticmethod
     def generate_random_key_and_iv():
         key = os.urandom(16)  
         iv = os.urandom(16)  
         return key, iv
     
+    @staticmethod
     def encrypt(self, plaintext: str, key:bytes, iv:bytes) -> tuple[str, bytes, bytes]:
         padder = padding.PKCS7(128).padder()
         padded_data = padder.update(plaintext.encode()) + padder.finalize()
@@ -30,6 +33,7 @@ class AES:
 
         return ciphertext
 
+    @staticmethod
     def decrypt(self, ciphertext: str, key: bytes, iv: bytes) -> str:
         cipher = Cipher(algorithms.AES(key), modes.CBC(iv))
         decryptor = cipher.decryptor()

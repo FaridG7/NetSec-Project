@@ -1,6 +1,7 @@
 from pathlib import Path
 import json
-from modules.types import User
+
+from modules.User import User
 
 class LoadUsers:
     def laod_users(self)->list[User]:

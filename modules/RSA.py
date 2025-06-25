@@ -2,7 +2,6 @@ from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.primitives import serialization, hashes
 from cryptography.hazmat.primitives.asymmetric import padding
 
-from modules.types import Signature
 
 class RSA:
     def generate_pem_format_key_pair(self) -> tuple[bytes, bytes]:
@@ -36,18 +35,19 @@ class RSA:
         )
         return ciphertext
     
-    def sign_with_private_key(self, private_pem: bytes, message: bytes) -> Signature:
+    def sign_with_private_key(self, private_pem: bytes, payload: bytes)->bytes:
         private_key = serialization.load_pem_private_key(private_pem, password=None)
 
         signature = private_key.sign(
-            message,
+            payload,
             padding.PSS(  # Recommended for signatures
                 mgf=padding.MGF1(hashes.SHA256()),
                 salt_length=padding.PSS.MAX_LENGTH
             ),
             hashes.SHA256()
         )
-        return {
-            'payload':message,
-            'signature': signature
-        }
+
+        return signature
+    
+    def is_signature_valid(self, payload:str, signature: bytes)->bool:
+        pass

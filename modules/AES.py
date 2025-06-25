@@ -14,8 +14,8 @@ class AES:
         )
         key_iv = kdf.derive(text.encode())
         return key_iv[:32], key_iv[32:]
-
-    def generate_random_key_and_iv(self):
+    @staticmethod
+    def generate_random_key_and_iv():
         key = os.urandom(16)  
         iv = os.urandom(16)  
         return key, iv

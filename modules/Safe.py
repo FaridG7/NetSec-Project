@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 from modules.AES import AES
@@ -17,6 +18,7 @@ class Safe:
         path.parent.mkdir(parents=True, exist_ok=True)
         with open(path, 'w') as f:
             f.write(f"{hash_digest}\n{salt_str}")
+            return hash_digest, salt_str
 
     @staticmethod
     def restore_password_hash_from_file(username:str):
@@ -39,7 +41,7 @@ class Safe:
             f.write(cipher_text)
 
     @staticmethod
-    def load_locally_private_key(username:str, password:str, salt_str:str)->bytes:
+    def restore_locally_private_key(username:str, password:str, salt_str:str)->bytes:
         path = Path('files/safe') / username / "safe.txt"
         try:
             with open(path) as f:

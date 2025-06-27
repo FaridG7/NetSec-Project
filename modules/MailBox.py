@@ -10,7 +10,7 @@ from modules.User import User
 from modules.Message import Message
 from modules.Loader import Loader
 from modules.HelperUtilities import HelperUtilities
-from modules.exceptions import LoginFailed, PrivateKeyFileNotFound
+from modules.exceptions import LoginFailed, PasswordHashFileNotFound, PrivateKeyFileNotFound
 
 class MailBox(Loader):
     console: Console
@@ -70,7 +70,7 @@ class MailBox(Loader):
                     time.sleep(0.01)
                     progress.update(login_task, advance=1)
                 
-                self.user = User.login(self.users, username, password)
+                self.user = User.login(self.users, username)
                 password_hash_digest, salt_str = Safe.restore_password_hash_from_file(self.user['username'])
                 
                 for i in range(60):
@@ -79,33 +79,39 @@ class MailBox(Loader):
 
                 self.console.print("[green]Login Successful[/green]")
 
-                password = self.console.input("[bold yellow]Enter Password[/bold yellow][bold orange](enter 0 to abort):[/bold orange]  ")
-                if password == '0':
-                    return
-                
-                if not HelperUtilities.is_password_verified(password, password_hash_digest, salt_str):
+                while True:
+                    password = self.console.input("[bold yellow]Enter Password[/bold yellow][bold orange](enter 0 to abort):[/bold orange]  ")
+                    if password == '0':
+                        return
+                    elif HelperUtilities.is_password_verified(password, password_hash_digest, salt_str):
+                        break
+
                     self.console.print("[bold red]Incorrect Password[/bold red]")
 
+                self.console.print("[ornage]Restoring Private Key[/ornage]")
                 for i in range(40):
                     time.sleep(0.01)
                     progress.update(login_task, advance=1)
 
-                self.cached_private_key_pem = Safe.load_locally_private_key(self.user["username"], password, salt_str)
+                self.cached_private_key_pem = Safe.restore_locally_private_key(self.user["username"], password, salt_str)
 
                 for i in range(60):
                     time.sleep(0.01)
                     progress.update(login_task, advance=1)
 
                 self.console.print("[green]Locally Saved Private Key Found and Cached[/green]")
+            except PasswordHashFileNotFound as e:
+                progress.stop()
+                self.console.print(f"[bold red]{e.message}[/bold red]")
             except LoginFailed as e:
                 progress.stop()
                 self.console.print(f"[bold red]{e.message}[/bold red]")
             except PrivateKeyFileNotFound as e:
                 progress.stop()
+                self.console.print(f"[bold red]{e.message}[/bold red]")
                 self.private_key_recovery_shell(password, salt_str)
 
     def private_key_recovery_shell(self, password:str, salt_str:str):
-        self.console.print(f"[bold red]Could not Find the Private Key Locally[/bold red]")
         self.console.print(f"[bold yellow]Starting Private Key Recovery Operation[/bold yellow]")
         
         try:
@@ -116,11 +122,11 @@ class MailBox(Loader):
             ).ask()
 
             if path:
-                self.cached_private_key_pem = HelperUtilities.restore_private_key_from_backup_file(self.user['username'], password, salt_str, path)
+                self.cached_private_key_pem = HelperUtilities.restore_private_key_from_backup_file(path)
+                Safe.store_private_key_locally(self.user['username'], password, salt_str, self.cached_private_key_pem)
             else:
                 self.console.print(f"[bold yellow]Private Key Recovery Operation Cancelled[/bold yellow]")
                 self.exit()
-
         except KeyboardInterrupt:
             self.console.print(f"[bold yellow]Private Key Recovery Operation Cancelled[/bold yellow]")
             self.exit()
@@ -154,7 +160,54 @@ class MailBox(Loader):
         pass
 
     def change_password_shell(self):
-        pass
+        with Progress() as progress:
+            change_password_task = progress.add_task("[cyan]Restoring Password Hash & Salt...", total=200)
+            try:
+                for i in range(40):
+                    time.sleep(0.01)
+                    progress.update(change_password_task, advance=1)
+                
+                password_hash_digest, salt_str = Safe.restore_password_hash_from_file(self.user['username'])
+                
+                for i in range(60):
+                    time.sleep(0.01)
+                    progress.update(change_password_task, advance=1)
+
+                self.console.print("[green]Restoring Password Hash & Salt Successful[/green]")
+
+                while True:
+                    password = self.console.input("[bold yellow]Enter Your Current Password[/bold yellow][bold orange](enter 0 to abort):[/bold orange]  ")
+                    if password == '0':
+                        return
+                    elif HelperUtilities.is_password_verified(password, password_hash_digest, salt_str):
+                        break
+
+                    self.console.print("[bold red]Incorrect Password[/bold red]")
+
+                while True:
+                    new_password = self.console.input("[bold yellow]Enter The New Password(between 8 to 16 characters with standard format)[/bold yellow][bold orange](enter 0 to abort):[/bold orange]  ")
+                    if new_password == '0':
+                        return
+                    elif HelperUtilities.is_valid_password_format(new_password):
+                        break
+
+                    self.console.print("[bold red]Incorrect Password[/bold red]")
+
+                self.console.print("[ornage]Changing Password Process Started[/ornage]")
+                for i in range(40):
+                    time.sleep(0.01)
+                    progress.update(change_password_task, advance=1)
+
+                HelperUtilities.change_password(self.user.username, password, new_password, self.cached_private_key_pem )
+
+                for i in range(60):
+                    time.sleep(0.01)
+                    progress.update(change_password_task, advance=1)
+
+                self.console.print("[green]Private Key Saved Locally with New Password[/green]")
+            except PasswordHashFileNotFound as e:
+                progress.stop()
+                self.console.print(f"[bold red]{e.message}[/bold red]")
     
     def send_messsages_and_logout(self)->None:
         with Progress() as progress:

@@ -15,7 +15,7 @@ class HelperUtilities:
         return ''.join(secrets.choice(chars) for _ in range(length))
     
     @staticmethod
-    def is_valid_password_format(self, password: str) -> bool:
+    def is_valid_password_format(password: str) -> bool:
         if not 8 <= len(password) <= 16:
             return False
         if not re.search(r'[A-Z]', password):
@@ -51,9 +51,13 @@ class HelperUtilities:
             f.write(private_pem)
     
     @staticmethod
-    def restore_private_key_from_backup_file(username:str, password:str, salt_str:str, path:str)->str:
+    def restore_private_key_from_backup_file(path:str)->str:
         with open(path, 'r') as f:
             private_key_pem = f.read()
-            Safe.store_private_key_locally(username, password, salt_str, private_key_pem)
             return private_key_pem
-        
+    
+    @staticmethod
+    def change_password(username:str, password:str, new_password:str, private_key_pem:bytes):
+        _, new_salt_str = Safe.store_password_hash_in_file(username, password)
+        Safe.store_private_key_locally(username, new_password, new_salt_str, private_key_pem)
+

@@ -6,6 +6,7 @@ from pathlib import Path
 from modules.HelperUtilities import HelperUtilities
 from modules.RSA import RSA
 from modules.AES import AES
+from modules.Safe import Safe
 from modules.Signature import Signature
 
 
@@ -23,7 +24,7 @@ class MessageHeader:
     def create_signature_for_message(self, message_text:str, sender_private_key_pem:bytes, sender_username:str, receiver_username:str)->Signature:
         timestamp = time.asctime(time.localtime())
         message_hash = hashlib.sha256(message_text).hexdigest()
-        payload = f"{timestamp} Sender:{sender_username} Receiver:{receiver_username} Message_Hash:{message_hash}"
+        payload = f"{timestamp},Sender:{sender_username},Receiver:{receiver_username},Message_Hash:{message_hash}"
         return {
             'payload': payload,
             'signature': RSA.sign_with_private_key(sender_private_key_pem, payload)
@@ -32,12 +33,12 @@ class MessageHeader:
 class MessageBody:
     sender_username: str
     receiver_username: str
-    message_text: str
+    text: str
 
-    def __init__(self, sender_username:str, receiver_username:str, message_text: str):
+    def __init__(self, sender_username:str, receiver_username:str, text: str):
         self.sender_username = sender_username
         self.receiver_username = receiver_username
-        self.message_text = message_text
+        self.text = text
 
 class Message(MessageHeader, MessageBody):
     def __init__(self, message_text:str, sender_private_key_pem: bytes, sender_username:str, receiver_username:str, receiver_public_key_pem: bytes):
@@ -55,19 +56,20 @@ class Message(MessageHeader, MessageBody):
     
     @staticmethod
     def dump_messages_to_file(messages:list["Message"]):
-        filename = HelperUtilities.generate_random_text(random.randint(10, 20))
-        path = Path('files/messages') / f"{filename}.txt"
+        latest_message_file_id = HelperUtilities.find_latest_message_id()
+        messages_file_id = latest_message_file_id + 1
+        path = Path('files/messages') / f"msg_{messages_file_id}.txt"
         with open(path, 'w') as f:
+            border = '------------------------------Message Border------------------------------\n'
             for message in messages:
-                tagged_key_and_iv = str(message.key) + str(message.iv) + b"::OK"
+                tagged_key_and_iv = str(message.key) + str(message.iv) + "::OK"
 
                 encrypted_key = RSA.encrypt_with_public_key(message.receiver_public_key_pem, tagged_key_and_iv)
-                encrypted_signature = RSA.encrypt_with_public_key(message.receiver_public_key_pem, str(message.signature))
-                cipher_text = AES.encrypt(message.message_text, message['key'], message['iv'])
+                encrypted_signature = AES.encrypt(str(message.signature), message['key'], message['iv'])
+                cipher_text = AES.encrypt(message.text, message['key'], message['iv'])
 
-                f.write('------------------------------Begin Message------------------------------')
-                f.write(f"\n{encrypted_key}\n{encrypted_signature}\n{cipher_text}\n")
-                f.write('------------------------------End Message------------------------------')
+                f.write(f"{encrypted_key}\n{encrypted_signature}\n{cipher_text}\n")
+                f.write(border)
 
     @staticmethod
     def send_messages(messages:list["Message"], users_count:int)->None:
@@ -79,3 +81,49 @@ class Message(MessageHeader, MessageBody):
         real_and_fake_messages = random.shuffle(messages + fake_messages)
         
         Message.dump_messages_to_file(real_and_fake_messages)
+
+
+    @staticmethod
+    def decrypt_and_validate_key(private_key_pem:bytes, encrypted_key:str):
+        try:
+            decrypted_key = RSA.decrypt_with_private_key(private_key_pem, encrypted_key)
+
+            if decrypted_key.endswith("::OK"):
+                return decrypted_key[:16], decrypted_key[16:-len("::OK")]
+            else:
+                return None, None
+        except Exception:
+            return None, None
+
+    @staticmethod
+    def export_message(text:str, private_key_pem:bytes, username_public_key_map:dict[str, bytes])->MessageBody | None:
+        border = '------------------------------Message Border------------------------------\n'
+        encrypted_message_texts = text.split(border)
+
+        for encrypted_message_text in encrypted_message_texts:
+            encrypted_key, encrypted_signature, cipher_text = encrypted_message_text.split('\n')
+            decrypted_key, decrypted_iv = Message.decrypt_and_validate_key(private_key_pem, encrypted_key)
+            if decrypted_key and decrypted_iv:
+                signature_payload, signature_signed_payload = [ value for label, value in [ item.split(":")for item in AES.decrypt(encrypted_signature, decrypted_key, decrypted_iv).split("\n") ] ]
+                sender_username, receiver_username, _ = [ value for label, value in [ item.split(':') for item in signature_payload.split(',')[1:] ] ]
+                text = AES.decrypt(cipher_text, decrypted_key, decrypted_iv)
+
+                if RSA.is_signature_valid(username_public_key_map[sender_username], signature_payload, signature_signed_payload):
+                    return MessageBody(sender_username, receiver_username, text)
+        return None
+
+    @staticmethod
+    def load_inbox(username:str, password:str, salt_str:str, private_key_pem:bytes):
+        old_inbox, latest_read_message_file_id = Safe.restore_local_old_inbox(username, password, salt_str)
+
+        latest_message_file_id = HelperUtilities.find_latest_message_id()
+
+        directory_path = Path('files/messages')
+        for messages_file_id in [f"{id}" for id in range(latest_read_message_file_id, latest_message_file_id)]:
+            path = directory_path / f"msg_{messages_file_id}.txt"
+            with open(path, 'r') as f:
+                message = Message.export_message(f.read(), private_key_pem)
+                if message:
+                    old_inbox.append(message)
+        
+        return old_inbox

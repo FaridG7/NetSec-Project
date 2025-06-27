@@ -58,6 +58,20 @@ class HelperUtilities:
     
     @staticmethod
     def change_password(username:str, password:str, new_password:str, private_key_pem:bytes):
-        _, new_salt_str = Safe.store_password_hash_in_file(username, password)
+        _, new_salt_str = Safe.store_password_hash_locally(username, password)
         Safe.store_private_key_locally(username, new_password, new_salt_str, private_key_pem)
 
+    @staticmethod
+    def find_latest_message_id():
+        directory_path = Path('files/messages')
+        message_files = os.listdir(directory_path)
+        pattern = re.compile(rf"{re.escape("msg_")}(\d+){re.escape(".txt")}")
+        max_id = 0
+        for f in message_files:
+            match = pattern.fullmatch(f)
+            if match:
+                file_id = int(match.group(1))
+                if file_id > max_id:
+                    max_id = file_id
+        
+        return max_id

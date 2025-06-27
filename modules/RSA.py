@@ -38,7 +38,7 @@ class RSA:
             return False
 
     @staticmethod
-    def encrypt_with_public_key(public_pem: bytes, message: bytes) -> bytes:
+    def encrypt_with_public_key(public_pem: bytes, message: str) -> bytes:
         public_key = serialization.load_pem_public_key(public_pem)
 
         ciphertext = public_key.encrypt(
@@ -51,6 +51,21 @@ class RSA:
         )
         return ciphertext
     
+    @staticmethod
+    def decrypt_with_private_key(privat_pem: bytes, cipher_text: bytes) -> str:
+        private_key = serialization.load_pem_private_key(privat_pem, password=None)
+
+        plain_text = private_key.decrypt(
+            cipher_text,
+            padding.OAEP(
+                mgf=padding.MGF1(algorithm=hashes.SHA256()),
+                algorithm=hashes.SHA256(),
+                label=None
+            )
+        )
+
+        return plain_text.decode()
+
     @staticmethod
     def sign_with_private_key(private_pem: bytes, payload: bytes)->bytes:
         private_key = serialization.load_pem_private_key(private_pem, password=None)

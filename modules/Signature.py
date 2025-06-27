@@ -11,6 +11,3 @@ class Signature:
 
     def __str__(self):
         return f"payload:{self.payload}\nsignature:{self.signed_payload}"
-
-    def is_signature_valid(self, public_pem:bytes):
-        RSA.is_signature_valid(public_pem, self.payload, self.signed_payload)

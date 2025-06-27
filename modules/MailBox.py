@@ -7,7 +7,7 @@ from rich.prompt import Prompt
 
 from modules.Safe import Safe
 from modules.User import User
-from modules.Message import Message
+from modules.Message import Message, MessageBody
 from modules.Loader import Loader
 from modules.HelperUtilities import HelperUtilities
 from modules.exceptions import LoginFailed, PasswordHashFileNotFound, PrivateKeyFileNotFound
@@ -15,6 +15,7 @@ from modules.exceptions import LoginFailed, PasswordHashFileNotFound, PrivateKey
 class MailBox(Loader):
     console: Console
     cached_private_key_pem: bytes
+    inbox: list[MessageBody]
 
     def __init__(self):
         self.console = Console()
@@ -60,10 +61,10 @@ class MailBox(Loader):
         exit(0)
 
     def login_shell(self)->None:
-        username = self.console.input("[bold yellow]Enter Username[/bold yellow][bold orange](type 'exit' to exit):[/bold orange] ")
-        if username == 'exit':
-            return
         with Progress() as progress:
+            username = self.console.input("[bold yellow]Enter Username[/bold yellow][bold orange](type 'exit' to exit):[/bold orange] ")
+            if username == 'exit':
+                return
             login_task = progress.add_task("[cyan]Loggining in...", total=200)
             try:
                 for i in range(40):
@@ -71,7 +72,7 @@ class MailBox(Loader):
                     progress.update(login_task, advance=1)
                 
                 self.user = User.login(self.users, username)
-                password_hash_digest, salt_str = Safe.restore_password_hash_from_file(self.user['username'])
+                password_hash_digest, salt_str = Safe.restore_local_password_hash(self.user['username'])
                 
                 for i in range(60):
                     time.sleep(0.01)
@@ -93,23 +94,26 @@ class MailBox(Loader):
                     time.sleep(0.01)
                     progress.update(login_task, advance=1)
 
-                self.cached_private_key_pem = Safe.restore_locally_private_key(self.user["username"], password, salt_str)
+                self.cached_private_key_pem = Safe.restore_local_private_key(self.user["username"], password, salt_str)
 
                 for i in range(60):
                     time.sleep(0.01)
                     progress.update(login_task, advance=1)
 
                 self.console.print("[green]Locally Saved Private Key Found and Cached[/green]")
+            
             except PasswordHashFileNotFound as e:
-                progress.stop()
                 self.console.print(f"[bold red]{e.message}[/bold red]")
             except LoginFailed as e:
-                progress.stop()
                 self.console.print(f"[bold red]{e.message}[/bold red]")
             except PrivateKeyFileNotFound as e:
-                progress.stop()
                 self.console.print(f"[bold red]{e.message}[/bold red]")
-                self.private_key_recovery_shell(password, salt_str)
+            finally:
+                progress.stop()
+                if not self.cached_private_key_pem:
+                    self.private_key_recovery_shell(password, salt_str)
+                # Message.load_inbox()
+                
 
     def private_key_recovery_shell(self, password:str, salt_str:str):
         self.console.print(f"[bold yellow]Starting Private Key Recovery Operation[/bold yellow]")
@@ -167,7 +171,7 @@ class MailBox(Loader):
                     time.sleep(0.01)
                     progress.update(change_password_task, advance=1)
                 
-                password_hash_digest, salt_str = Safe.restore_password_hash_from_file(self.user['username'])
+                password_hash_digest, salt_str = Safe.restore_local_password_hash(self.user['username'])
                 
                 for i in range(60):
                     time.sleep(0.01)
@@ -205,9 +209,12 @@ class MailBox(Loader):
                     progress.update(change_password_task, advance=1)
 
                 self.console.print("[green]Private Key Saved Locally with New Password[/green]")
+
             except PasswordHashFileNotFound as e:
-                progress.stop()
                 self.console.print(f"[bold red]{e.message}[/bold red]")
+            finally:
+                progress.stop()
+
     
     def send_messsages_and_logout(self)->None:
         with Progress() as progress:

@@ -3,14 +3,16 @@ import json
 
 from modules.User import User
 
-class UsersLoader:
+class Loader:
     user: User | None
     users: list[User]
+    cached_messages: dict[User,str]
 
     def __init__(self):
         self.user = None
         self.users = self.load_users()
-    
+        self.cached_messages = {}
+        
     def load_users(self)->list[User]:
         path = Path('files') / 'users.json'
         path.parent.mkdir(parents=True, exist_ok=True)

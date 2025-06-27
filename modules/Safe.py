@@ -30,21 +30,23 @@ class Safe:
             raise PasswordHashFileNotFound()
 
     @staticmethod
-    def store_private_key_locally(username:str, password:str, salt_str:str, private_key:str)->None:
+    def store_private_key_locally(username:str, password:str, salt_str:str, private_key_pem:bytes)->None:
         path = Path('files/safe') / username / "safe.txt"
         path.parent.mkdir(parents=True, exist_ok=True)
         with open(path, 'w') as f:
             key, iv = AES.derive_key_and_iv_from_two_texts(password, salt_str)
-            cipher_text = AES.encrypt(private_key, key, iv)
+            cipher_text = AES.encrypt(private_key_pem.decode(), key, iv)
             f.write(cipher_text)
 
     @staticmethod
-    def load_private_key(username:str, password:str, salt_str:str)->str | None:
+    def load_locally_private_key(username:str, password:str, salt_str:str)->bytes:
         path = Path('files/safe') / username / "safe.txt"
         try:
             with open(path) as f:
                 cipher_text = f.read()
                 key, iv = AES.derive_key_and_iv_from_two_texts(password, salt_str)
-                return AES.decrypt(cipher_text, key, iv)
+                private_key =  AES.decrypt(cipher_text, key, iv)
+                return private_key.encode()
+
         except FileNotFoundError:
             raise PrivateKeyFileNotFound()

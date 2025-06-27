@@ -4,16 +4,17 @@ import os
 from rich.console import Console
 from rich.progress import Progress
 from rich.prompt import Prompt
-from modules.HelperUtilities import HelperUtilities
-from modules.RSA import RSA
+
 from modules.Safe import Safe
 from modules.User import User
-from modules.UsersLoader import UsersLoader
-from modules.exceptions import BadInput, ConflictError, LoginFailed, PrivateKeyFileNotFound
+from modules.Message import Message
+from modules.Loader import Loader
+from modules.HelperUtilities import HelperUtilities
+from modules.exceptions import LoginFailed, PrivateKeyFileNotFound
 
-class MailBox(UsersLoader):
+class MailBox(Loader):
     console: Console
-    cached_private_key: str
+    cached_private_key_pem: bytes
 
     def __init__(self):
         self.console = Console()
@@ -25,11 +26,12 @@ class MailBox(UsersLoader):
             if self.user:
                 self.logged_in_shell()
             else:
-                self.login_shell()
-
+                self.anonymous_shell()
+    
     def prompt_user(self, message:str, choices: list[str])->str:
         self.console.clear()
         return questionary.select(
+
             f"{message}",
             choices=choices
         ).ask()
@@ -41,7 +43,19 @@ class MailBox(UsersLoader):
         for i in range(presses):
             Prompt.ask(f"[bold yellow]Press Enter ({i+1}/{presses}) to continue[/bold yellow]", default="", show_default=False)
 
-    def exit_shell(self):
+    def anonymous_shell(self)->None:
+        action_map = {
+            "Login": self.login_shell,
+            "Help": self.help_shell,
+            "Help": self.exit,
+        }
+        action = self.prompt_user_for_an_action(list(action_map.keys()))
+        action_map[action]()
+
+    def help_shell(self):
+        pass
+
+    def exit(self):
         self.console.print("[cyan]Bye👋")
         exit(0)
 
@@ -50,18 +64,18 @@ class MailBox(UsersLoader):
         if username == 'exit':
             return
         with Progress() as progress:
-            login_progress = progress.add_task("[cyan]Loggining in...", total=200)
+            login_task = progress.add_task("[cyan]Loggining in...", total=200)
             try:
                 for i in range(40):
                     time.sleep(0.01)
-                    progress.update(login_progress, advance=1)
+                    progress.update(login_task, advance=1)
                 
                 self.user = User.login(self.users, username, password)
                 password_hash_digest, salt_str = Safe.restore_password_hash_from_file(self.user['username'])
                 
                 for i in range(60):
                     time.sleep(0.01)
-                    progress.update(login_progress, advance=1)
+                    progress.update(login_task, advance=1)
 
                 self.console.print("[green]Login Successful[/green]")
 
@@ -74,13 +88,13 @@ class MailBox(UsersLoader):
 
                 for i in range(40):
                     time.sleep(0.01)
-                    progress.update(login_progress, advance=1)
+                    progress.update(login_task, advance=1)
 
-                self.cached_private_key = Safe.load_private_key(self.user["username"], password, salt_str)
+                self.cached_private_key_pem = Safe.load_locally_private_key(self.user["username"], password, salt_str)
 
                 for i in range(60):
                     time.sleep(0.01)
-                    progress.update(login_progress, advance=1)
+                    progress.update(login_task, advance=1)
 
                 self.console.print("[green]Locally Saved Private Key Found and Cached[/green]")
             except LoginFailed as e:
@@ -102,26 +116,27 @@ class MailBox(UsersLoader):
             ).ask()
 
             if path:
-                self.cached_private_key = HelperUtilities.restore_private_key_backup(self.user['username'], password, salt_str, path)
+                self.cached_private_key_pem = HelperUtilities.restore_private_key_from_backup_file(self.user['username'], password, salt_str, path)
             else:
                 self.console.print(f"[bold yellow]Private Key Recovery Operation Cancelled[/bold yellow]")
-                self.exit_shell()
+                self.exit()
 
         except KeyboardInterrupt:
             self.console.print(f"[bold yellow]Private Key Recovery Operation Cancelled[/bold yellow]")
-            self.exit_shell()
+            self.exit()
 
     def logged_in_shell(self)->None:
         action_map = {
-            "Send a message": self.send_message_shell,
+            "Write a message": self.write_message_shell,
             "Inbox": self.inbox_shell,
             "Change password": self.change_password_shell,
-            "Logout": self.logout
+            "Send message(s) & Logout": self.send_messsages_and_logout,
+            "Help": self.help_shell,
         }
         action = self.prompt_user_for_an_action(list(action_map.keys()))
         action_map[action]()
 
-    def send_message_shell(self):
+    def write_message_shell(self):
         message = questionary.form(
             receivers=questionary.checkbox(
                "Choose your receivers:",
@@ -129,9 +144,11 @@ class MailBox(UsersLoader):
             ),
             text=questionary.text("Enter you message's text:", multiline=True),
         )
-        
-        messages = list(map(lambda receiver:  self.create_message_object(message['text'], self.user['username'], receiver['username'], self.cached_private_key, receiver['public_key']), message['receivers']))
-        self.send_messages(messages, len(self.users))
+        for receiver in message["receivers"]:
+            if receiver in self.cached_messages and self.cached_messages[receiver]:
+                self.cached_messages[receiver] += message['text']
+            else:
+                self.cached_messages[receiver] = message['text']
 
     def inbox_shell(self):
         pass
@@ -139,5 +156,22 @@ class MailBox(UsersLoader):
     def change_password_shell(self):
         pass
     
-    def logout(self)->None:
-        self.user = None
+    def send_messsages_and_logout(self)->None:
+        with Progress() as progress:
+            send_messages_tesk = progress.add_task("[cyan]Sending Messages...", total=100)
+            for i in range(10):
+                time.sleep(0.01)
+                progress.update(send_messages_tesk, advance=1)
+                
+            messages = [Message(text, self.cached_private_key_pem, self.user.username, receiver['username'], receiver['public_key_pem']) for receiver, text in self.cached_messages.items()]
+            Message.send_messages(messages, len(self.users))
+
+            for i in range(85):
+                time.sleep(0.01)
+                progress.update(send_messages_tesk, advance=1)
+            
+            self.user = None
+
+            for i in range(5):
+                time.sleep(0.01)
+                progress.update(send_messages_tesk, advance=1)

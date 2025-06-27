@@ -51,8 +51,9 @@ class HelperUtilities:
             f.write(private_pem)
     
     @staticmethod
-    def restore_private_key_backup(username:str, password:str, salt_str:str, path:str)->str:
+    def restore_private_key_from_backup_file(username:str, password:str, salt_str:str, path:str)->str:
         with open(path, 'r') as f:
-            private_pem = f.read()
-            Safe.store_private_key_locally(username, password, salt_str, private_pem)
-            return private_pem
+            private_key_pem = f.read()
+            Safe.store_private_key_locally(username, password, salt_str, private_key_pem)
+            return private_key_pem
+        

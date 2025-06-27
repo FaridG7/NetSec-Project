@@ -7,7 +7,6 @@ from modules.HelperUtilities import HelperUtilities
 from modules.RSA import RSA
 from modules.AES import AES
 from modules.Signature import Signature
-from modules.exceptions import ConflictError
 
 
 class MessageHeader:

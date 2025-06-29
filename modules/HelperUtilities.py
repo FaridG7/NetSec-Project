@@ -5,8 +5,6 @@ import string
 import hashlib
 import secrets
 
-from modules.Safe import Safe
-
 
 class HelperUtilities:
     @staticmethod
@@ -47,7 +45,7 @@ class HelperUtilities:
     @staticmethod
     def generate_private_key_backup_file(private_pem:bytes)->None:
         path = Path('.') / "private_key.txt"
-        with open(path), 'w' as f:
+        with open(path, 'wb') as f:
             f.write(private_pem)
     
     @staticmethod
@@ -56,11 +54,6 @@ class HelperUtilities:
             private_key_pem = f.read()
             return private_key_pem
     
-    @staticmethod
-    def change_password(username:str, password:str, new_password:str, private_key_pem:bytes):
-        _, new_salt_str = Safe.store_password_hash_locally(username, password)
-        Safe.store_private_key_locally(username, new_password, new_salt_str, private_key_pem)
-
     @staticmethod
     def find_latest_message_id():
         directory_path = Path('files/messages')

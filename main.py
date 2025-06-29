@@ -1,5 +1,6 @@
 from modules.MailBox import MailBox
 
+
 def main():
     app = MailBox()
     app.run()

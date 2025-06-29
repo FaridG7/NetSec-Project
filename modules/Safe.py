@@ -107,4 +107,8 @@ class Safe:
             return inbox_messages, latest_read_message
         except FileNotFoundError:
             return [], None
-    
+
+    @staticmethod
+    def change_password(username:str, password:str, new_password:str, private_key_pem:bytes):
+        _, new_salt_str = Safe.store_password_hash_locally(username, password)
+        Safe.store_private_key_locally(username, new_password, new_salt_str, private_key_pem)

@@ -7,14 +7,14 @@ from rich.prompt import Prompt
 
 from modules.Safe import Safe
 from modules.User import User
-from modules.Message import Message, MessageBody
 from modules.Loader import Loader
+from modules.Message import Message, MessageBody
 from modules.HelperUtilities import HelperUtilities
 from modules.exceptions import LoginFailed, PasswordHashFileNotFound, PrivateKeyFileNotFound
 
 class MailBox(Loader):
     console: Console
-    cached_private_key_pem: bytes
+    cached_user_private_key_pem: bytes
     inbox: list[MessageBody]
 
     def __init__(self):
@@ -94,7 +94,7 @@ class MailBox(Loader):
                     time.sleep(0.01)
                     progress.update(login_task, advance=1)
 
-                self.cached_private_key_pem = Safe.restore_local_private_key(self.user["username"], password, salt_str)
+                self.cached_user_private_key_pem = Safe.restore_local_private_key(self.user["username"], password, salt_str)
 
                 for i in range(60):
                     time.sleep(0.01)
@@ -110,7 +110,7 @@ class MailBox(Loader):
                 self.console.print(f"[bold red]{e.message}[/bold red]")
             finally:
                 progress.stop()
-                if not self.cached_private_key_pem:
+                if not self.cached_user_private_key_pem:
                     self.private_key_recovery_shell(password, salt_str)
                 # Message.load_inbox()
                 
@@ -126,8 +126,8 @@ class MailBox(Loader):
             ).ask()
 
             if path:
-                self.cached_private_key_pem = HelperUtilities.restore_private_key_from_backup_file(path)
-                Safe.store_private_key_locally(self.user['username'], password, salt_str, self.cached_private_key_pem)
+                self.cached_user_private_key_pem = HelperUtilities.restore_private_key_from_backup_file(path)
+                Safe.store_private_key_locally(self.user['username'], password, salt_str, self.cached_user_private_key_pem)
             else:
                 self.console.print(f"[bold yellow]Private Key Recovery Operation Cancelled[/bold yellow]")
                 self.exit()
@@ -202,7 +202,7 @@ class MailBox(Loader):
                     time.sleep(0.01)
                     progress.update(change_password_task, advance=1)
 
-                HelperUtilities.change_password(self.user.username, password, new_password, self.cached_private_key_pem )
+                HelperUtilities.change_password(self.user.username, password, new_password, self.cached_user_private_key_pem )
 
                 for i in range(60):
                     time.sleep(0.01)
@@ -223,7 +223,7 @@ class MailBox(Loader):
                 time.sleep(0.01)
                 progress.update(send_messages_tesk, advance=1)
                 
-            messages = [Message(text, self.cached_private_key_pem, self.user.username, receiver['username'], receiver['public_key_pem']) for receiver, text in self.cached_messages.items()]
+            messages = [Message(text, self.cached_user_private_key_pem, self.user.username, receiver['username'], receiver['public_key_pem']) for receiver, text in self.cached_messages.items()]
             Message.send_messages(messages, len(self.users))
 
             for i in range(85):

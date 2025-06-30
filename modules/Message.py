@@ -6,7 +6,6 @@ from pathlib import Path
 from modules.HelperUtilities import HelperUtilities
 from modules.RSA import RSA
 from modules.AES import AES
-from modules.Safe import Safe
 from modules.Signature import Signature
 from modules.User import User
 
@@ -115,6 +114,7 @@ class Message(MessageHeader, MessageBody):
 
     @staticmethod
     def load_inbox(username:str, password:str, salt_str:str, private_key_pem:bytes, users:list[User])->list["MessageBody"]:
+        from modules.Safe import Safe
         old_inbox, latest_read_message_file_id = Safe.restore_local_old_inbox(username, password, salt_str)
 
         latest_message_file_id = HelperUtilities.find_latest_message_id()

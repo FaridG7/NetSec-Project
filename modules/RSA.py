@@ -67,12 +67,12 @@ class RSA:
         return plain_text.decode()
 
     @staticmethod
-    def sign_with_private_key(private_pem: bytes, payload: bytes)->bytes:
+    def sign_with_private_key(private_pem: bytes, payload: str)->bytes:
         private_key = serialization.load_pem_private_key(private_pem, password=None)
 
         signature = private_key.sign(
-            payload,
-            padding.PSS(  # Recommended for signatures
+            payload.encode(),
+            padding.PSS(
                 mgf=padding.MGF1(hashes.SHA256()),
                 salt_length=padding.PSS.MAX_LENGTH
             ),

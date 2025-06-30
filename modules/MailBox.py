@@ -90,13 +90,17 @@ class MailBox(Loader):
 
         try:
             with Progress() as progress:
-                register_progress = progress.add_task("[cyan]Register Process started...", total=100)
-
-                for i in range(100):
+                register_progress = progress.add_task("[cyan]Register process started...", total=100)
+                for i in range(20):
                     time.sleep(0.02)
                     progress.update(register_progress, advance=1)
 
                 private_key_pem = User.register_user(self.users, username, registrar_private_key_pem)
+                
+                for i in range(80):
+                    time.sleep(0.02)
+                    progress.update(register_progress, advance=1)
+                progress.stop()
 
             self.console.print("[green]Register Successful[/green]")
             self.console.print("[bold yellow]Backup private key file generated[/bold yellow]")
@@ -105,7 +109,9 @@ class MailBox(Loader):
             _, salt_str = Safe.store_password_hash_locally(username, password)
             Safe.store_private_key_locally(username, password, salt_str, private_key_pem )
 
-        except Exception as e:
+        except ConflictError as e:
+            self.console.print(f"[bold red]{e.message}[/bold red]")
+        except BadInput as e:
             self.console.print(f"[bold red]{e.message}[/bold red]")
     
     def help_shell(self):

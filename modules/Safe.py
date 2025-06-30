@@ -1,4 +1,3 @@
-import os
 from pathlib import Path
 
 from modules.AES import AES
@@ -6,6 +5,9 @@ from modules.HelperUtilities import HelperUtilities
 from modules.Message import MessageBody
 from modules.exceptions import BadInput, PasswordHashFileNotFound, PrivateKeyFileNotFound
 
+
+seperator1 = "-------------------------------------------------------------------------------------------------------\n"
+seperator2 = ";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;\n"
 
 class Safe:
     @staticmethod
@@ -63,8 +65,6 @@ class Safe:
     def store_old_inbox_locally(username:str, password:str, salt_str:str, inbox:list[MessageBody], latest_read_message_id:int)->None:
         path = Path('files/safe') / username / "old_inbox.txt"
         key, iv = AES.derive_key_and_iv_from_two_texts(password, salt_str)
-        seperator1 = "-------------------------------------------------------------------------------------------------------\n"
-        seperator2 = ";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;\n"
         payloads = [f"{message.sender_username},{message.receiver_username}{seperator1}{message.text}{seperator1}" for message in inbox]
         payloads.append(f"{latest_read_message_id}")
         cipher_text = AES.encrypt(seperator2.join(payloads), key, iv)
@@ -78,9 +78,6 @@ class Safe:
 
             key, iv = AES.derive_key_and_iv_from_two_texts(password, salt_str)
             plain_text =  AES.decrypt(cipher_text, key, iv)
-            
-            seperator1 = "-------------------------------------------------------------------------------------------------------\n"
-            seperator2 = ";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;\n"
             
             payloads = plain_text.split(seperator2)
             latest_read_message = int(payloads.pop())

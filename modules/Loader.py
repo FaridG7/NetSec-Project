@@ -19,3 +19,5 @@ class Loader:
         if path.exists():
             with open(path, 'rb') as f:
                 return f.read()
+        else:
+            raise

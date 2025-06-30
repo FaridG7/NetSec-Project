@@ -21,7 +21,7 @@ class User:
             certificate= Signature.from_dependencies(f"username:{username},public_key:{public_key_pem}", registrar_private_key_pem) 
         )
     
-    def to_dict(self)->dict[str, str | bytes | dict[str, str | bytes]]:
+    def to_dict(self)->dict[str, str | bytes | dict[str, str]]:
          return {
         "username": self.username,
         "public_key_pem": self.public_key_pem.hex(),

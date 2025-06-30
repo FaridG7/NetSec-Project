@@ -27,18 +27,16 @@ class HelperUtilities:
         return True
     
     @staticmethod
-    def hash_password(password:str)->tuple[str, str]:
+    def hash_password(password:str)->tuple[bytes, bytes]:
         salt = os.urandom(16)
         salted_password = salt + password.encode()
-        hash_digest = hashlib.sha256(salted_password).hexdigest()
-        return hash_digest, salt.hex()
+        hash_digest = hashlib.sha256(salted_password).digest()
+        return hash_digest, salt
 
     @staticmethod
-    def is_password_verified(password:str, hash_digest:str, salt_hex:str)->bool:
-        salt = bytes.fromhex(salt_hex)
-
+    def is_password_verified(password:str, hash_digest:bytes, salt:bytes)->bool:
         salted_input = salt + password.encode()
-        new_hash = hashlib.sha256(salted_input).hexdigest()
+        new_hash = hashlib.sha256(salted_input).digest()
         
         return new_hash == hash_digest
 
@@ -55,16 +53,8 @@ class HelperUtilities:
             return private_key_pem
     
     @staticmethod
-    def find_latest_message_id():
+    def find_latest_message_id()-> int:
         directory_path = Path('files/messages')
         message_files = os.listdir(directory_path)
         pattern = re.compile(rf"{re.escape("msg_")}(\d+){re.escape(".txt")}")
-        max_id = 0
-        for f in message_files:
-            match = pattern.fullmatch(f)
-            if match:
-                file_id = int(match.group(1))
-                if file_id > max_id:
-                    max_id = file_id
-        
-        return max_id
+        return len(message_files)

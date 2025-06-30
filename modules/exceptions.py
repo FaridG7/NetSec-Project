@@ -26,6 +26,10 @@ class NotFound(Exception):
         super().__init__(message)
         self.code = 404
 
+class RootCerificateFileNotFound(NotFound):
+    def __init__(self, message="Not Found: Could not find the root certificate file."):
+        super().__init__(message)
+
 class PasswordHashFileNotFound(NotFound):
     def __init__(self, message="Not Found: Could not find the password.txt file."):
         super().__init__(message)

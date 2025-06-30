@@ -23,8 +23,6 @@ class MailBox(Loader):
         self.inbox = []
 
     def run(self)->None:
-        self.console.clear()
-        self.console.print("[bold cyan]MailBox(My Network Security Class Project)")
         while True:
             if self.user:
                 self.logged_in_shell()
@@ -33,6 +31,7 @@ class MailBox(Loader):
 
     def prompt_user(self, message:str, choices: list[str])->str:
         self.console.clear()
+        self.console.print("[bold cyan]MailBox(My Network Security Class Project)")
         return questionary.select(
 
             f"{message}",
@@ -41,10 +40,6 @@ class MailBox(Loader):
     
     def prompt_user_for_an_action(self, actions:list[str])->str:
         return self.prompt_user("Choose an Action", actions)
-    
-    def pause_console(self, presses=3):
-        for i in range(presses):
-            questionary.confirm(f"[bold yellow]Press Enter ({i+1}/{presses}) to continue[/bold yellow]")
 
     def anonymous_shell(self)->None:
         action_map = {
@@ -109,9 +104,7 @@ class MailBox(Loader):
             _, salt_str = Safe.store_password_hash_locally(username, password)
             Safe.store_private_key_locally(username, password, salt_str, private_key_pem )
 
-        except ConflictError as e:
-            self.console.print(f"[bold red]{e.message}[/bold red]")
-        except BadInput as e:
+        except (ConflictError, BadInput) as e:
             self.console.print(f"[bold red]{e.message}[/bold red]")
     
     def help_shell(self):
@@ -174,8 +167,7 @@ class MailBox(Loader):
                 progress.stop()
                 if not self.cached_user_private_key_pem:
                     self.private_key_recovery_shell(password, salt_str)
-                self.inbox = Message.load_inbox(self.user['username'], password, salt_str, self.cached_user_private_key_pem, self.users)
-                
+                self.inbox = Message.load_inbox(self.user['username'], password, salt_str, self.cached_user_private_key_pem, self.users)         
 
     def private_key_recovery_shell(self, password:str, salt_str:str):
         self.console.print(f"[bold yellow]Starting Private Key Recovery Operation[/bold yellow]")
@@ -224,14 +216,13 @@ class MailBox(Loader):
 
     def inbox_shell(self):
         if not self.inbox:
-            self.console.print("[bold red]Your Inbox is Empty[/bold red]")
-            self.pause_console()
+            self.console.print("[bold]Your Inbox is Empty[/bold]")
+            self.console.input("[bold yellow]Press [Enter] to continue...[/bold yellow]")
             return
         while True:
             self.console.clear()
             self.console.print("[bold cyan]Inbox:")
 
-            # Prepare choices for the menu
             choices = [
                 {
                     "name": f"ID: {getattr(msg, 'id', i+1)} | Time: {getattr(msg, 'timestamp', 'N/A')}",
@@ -248,10 +239,14 @@ class MailBox(Loader):
 
             if selected is not None:
                 msg = self.inbox[selected]
-                self.console.clear()
-                self.console.print(f"[bold yellow]From: {msg.sender_username}[/bold yellow]")
-                self.console.print(f"[bold yellow]Text: {msg.text}[/bold yellow]")
-                self.pause_console()
+                message_details = (
+                    f"[bold yellow]From:[/bold yellow] {msg.sender_username}\n"
+                    f"[bold yellow]To:[/bold yellow] {msg.receiver_username}\n"
+                    f"[bold yellow]Time:[/bold yellow] {getattr(msg, 'timestamp', 'N/A')}\n"
+                    f"[bold yellow]ID:[/bold yellow] {getattr(msg, 'id', selected+1)}\n"
+                    f"\n[bold yellow]Text:[/bold yellow]\n{msg.text}"
+                )
+                self.console.pager(message_details)
             else:
                 break
 
@@ -307,7 +302,6 @@ class MailBox(Loader):
             finally:
                 progress.stop()
 
-    
     def send_messsages_and_logout(self)->None:
         with Progress() as progress:
             send_messages_tesk = progress.add_task("[cyan]Sending Messages...", total=100)

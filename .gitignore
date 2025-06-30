@@ -1,2 +1,3 @@
 /test.py
 *.bak
+*_private_key.pem

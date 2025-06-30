@@ -43,8 +43,8 @@ class HelperUtilities:
         return new_hash == hash_digest
 
     @staticmethod
-    def generate_private_key_backup_file(private_pem:bytes)->None:
-        path = Path('.') / "private_key.txt"
+    def generate_private_key_backup_file(username:str, private_pem:bytes)->None:
+        path = Path('.') / f"{username}_private_key.pem"
         with open(path, 'wb') as f:
             f.write(private_pem)
     

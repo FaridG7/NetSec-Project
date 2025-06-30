@@ -60,24 +60,6 @@ class Safe:
             raise PrivateKeyFileNotFound()
     
     @staticmethod
-    def store_last_read_message_locally(username:str, password:str, salt_str:str, last_read_message_id:str)->None:
-        path = Path('files/safe') / username / "last_read_message.txt"
-        key, iv = AES.derive_key_and_iv_from_two_texts(password, salt_str)
-        cipher_text = AES.encrypt(last_read_message_id, key, iv)
-        Safe.store_locally(path, cipher_text)
-
-    @staticmethod
-    def restore_local_last_read_message(username:str, password:str, salt_str:str)->str|None:
-        path = Path('files/safe') / username / "last_read_message.txt"
-        try:
-            cipher_text = Safe.restore_locally(path)
-            key, iv = AES.derive_key_and_iv_from_two_texts(password, salt_str)
-            last_read_message_id =  AES.decrypt(cipher_text, key, iv)
-            return last_read_message_id
-        except FileNotFoundError:
-            return None
-    
-    @staticmethod
     def store_old_inbox_locally(username:str, password:str, salt_str:str, inbox:list[MessageBody], latest_read_message_id:int)->None:
         path = Path('files/safe') / username / "old_inbox.txt"
         key, iv = AES.derive_key_and_iv_from_two_texts(password, salt_str)

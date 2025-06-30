@@ -2,6 +2,7 @@ import json
 from pathlib import Path
 from dataclasses import dataclass
 
+from modules.HelperUtilities import HelperUtilities
 from modules.RSA import RSA
 from modules.Signature import Signature
 from modules.exceptions import ConflictError,LoginFailed
@@ -21,7 +22,7 @@ class User:
         )
 
     def __str__(self):
-        return f"username:{self.username},public_key:{self.public_key_pem},certificate:{str(self.certificate['signature'])},"
+        return f"username:{self.username},public_key:{self.public_key_pem},certificate:{str(self.certificate)},"
 
     @staticmethod
     def find_matched_user(username:str, users:list["User"])->"User" | None:
@@ -45,20 +46,18 @@ class User:
             json.dump(users, f, indent=2)
 
     @staticmethod
-    def register_user(users:list["User"], username: str, registrar_username:str, registrar_private_key_pem:bytes) -> tuple[list["User"], dict[str, "User"|bytes]]:
+    def register_user(users:list["User"], username: str, registrar_private_key_pem:bytes):
         mutated_users = users.copy()
         if User.is_duplicate_user_name(users, username):
             raise ConflictError
 
         private_pem, public_pem = RSA.generate_pem_format_key_pair()
 
-        user = User(username, public_pem, registrar_username,registrar_private_key_pem)
+        HelperUtilities.generate_private_key_backup_file(username, private_pem)
+
+        user = User.from_dependencies(username, public_pem, registrar_private_key_pem)
         mutated_users.append(user)
 
         path = Path('files') / 'users.json'
         User.dump_users_to_file(path, mutated_users)
-
-        return mutated_users, {
-            "user": user,
-            "private_key": private_pem
-        }
+        return private_pem

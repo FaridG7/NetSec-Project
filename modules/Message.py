@@ -6,7 +6,6 @@ from pathlib import Path
 from modules.HelperUtilities import HelperUtilities
 from modules.RSA import RSA
 from modules.AES import AES
-from modules.Safe import Safe
 from modules.Signature import Signature
 from modules.User import User
 
@@ -115,6 +114,8 @@ class Message(MessageHeader, MessageBody):
 
     @staticmethod
     def load_inbox(username:str, password:str, salt:bytes, private_key_pem:bytes, users:list[User])->list["MessageBody"]:
+        from modules.Safe import Safe
+        
         latest_message_file_id = HelperUtilities.find_messages_count()
         if latest_message_file_id == 0:
             return []

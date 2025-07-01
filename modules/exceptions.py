@@ -3,6 +3,11 @@ class ServiceUnavailable(Exception):
         super().__init__(message)
         self.code = 503
 
+class RootCertificateTempered(ServiceUnavailable):
+    def __init__(self, message="Root Certificate Tempered: Someone deleted or tempered the root certificate file!"):
+        super().__init__(message)
+        self.code = 503
+
 class OptionsNotFound(ServiceUnavailable):
     def __init__(self, message="Options Not Found: Could not find the options 'files/options.json'"):
         super().__init__(message)

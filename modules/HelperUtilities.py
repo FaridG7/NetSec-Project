@@ -8,6 +8,10 @@ import secrets
 
 class HelperUtilities:
     @staticmethod
+    def is_certificate_valid(public_pem:bytes):
+        return  hashlib.sha256(public_pem).digest() == b'\xb4n\xa4\xf7\xa3O\xaf\xfc\xb0\x11\xc0NS\xd3\x90l\x82~_.\x11\x95"[\xd71U\x04\rD\xb6\xab'
+
+    @staticmethod
     def generate_random_text(length:int):
         chars = string.ascii_letters + string.digits
         return ''.join(secrets.choice(chars) for _ in range(length))

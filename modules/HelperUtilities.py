@@ -53,8 +53,7 @@ class HelperUtilities:
             return private_key_pem
     
     @staticmethod
-    def find_latest_message_id()-> int:
+    def find_messages_count()-> int:
         directory_path = Path('files/messages')
         message_files = os.listdir(directory_path)
-        pattern = re.compile(rf"{re.escape("msg_")}(\d+){re.escape(".txt")}")
         return len(message_files)

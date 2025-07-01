@@ -29,4 +29,4 @@ class Signature:
         )
 
     def __str__(self):
-        return f"(payload:{self.payload}\nsignature:{self.signed_payload})"
+        return f"(payload:{self.payload}\nsignature:{self.signed_payload.hex()})"

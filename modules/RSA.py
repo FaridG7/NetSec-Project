@@ -25,13 +25,13 @@ class RSA:
         return private_pem, public_pem
 
     @staticmethod
-    def encrypt_with_public_key(public_pem: bytes, message: str) -> bytes:
+    def encrypt_with_public_key(public_pem: bytes, plaintext: str) -> bytes:
         public_key = serialization.load_pem_public_key(public_pem)
         if not isinstance(public_key, rsa.RSAPublicKey):
             raise TypeError("Provided public key is not an RSA public key.")
 
         ciphertext = public_key.encrypt(
-            message.encode(),
+            plaintext.encode(),
             padding.OAEP(  # Recommended padding
                 mgf=padding.MGF1(algorithm=hashes.SHA256()),
                 algorithm=hashes.SHA256(),
@@ -54,8 +54,7 @@ class RSA:
                 label=None
             )
         )
-
-        return plain_text.decode()
+        return plain_text.decode()  # Return bytes, not str
 
     @staticmethod
     def sign_with_private_key(private_pem: bytes, payload: str)->bytes:

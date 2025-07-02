@@ -24,8 +24,10 @@ class AES:
     
     @staticmethod
     def encrypt(plaintext: str, key:bytes, iv:bytes)->bytes:
+        plaintext_bytes = base64.b64encode(plaintext.encode())
         padder = padding.PKCS7(128).padder()
-        padded_data = padder.update(plaintext.encode()) + padder.finalize()
+        padded_data = padder.update(plaintext_bytes) + padder.finalize()
+
 
         cipher = Cipher(algorithms.AES(key), modes.CBC(iv))
         encryptor = cipher.encryptor()
@@ -40,4 +42,4 @@ class AES:
 
         unpadder = padding.PKCS7(128).unpadder()
         plaintext = unpadder.update(padded_plaintext) + unpadder.finalize()
-        return plaintext.decode("utf-8")
+        return base64.b64decode(plaintext).decode()

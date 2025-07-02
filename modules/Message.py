@@ -1,6 +1,7 @@
 import time
 import random
 import hashlib
+import base64
 from pathlib import Path
 
 from modules.HelperUtilities import HelperUtilities
@@ -9,7 +10,7 @@ from modules.AES import AES
 from modules.Signature import Signature
 from modules.User import User
 
-border = '------------------------------Message Border------------------------------\n'
+border = '\n------------------------------Message Border------------------------------\n'
 tag = "::OK"
 
 class MessageHeader:
@@ -60,13 +61,13 @@ class Message(MessageHeader, MessageBody):
 
         with open(path, 'w') as f:
             for message in messages:
-                tagged_key_and_iv = message.key.hex() + message.iv.hex() + tag
-                encrypted_key = RSA.encrypt_with_public_key(message.receiver_public_key_pem, tagged_key_and_iv)
+                key_iv_str = f"{base64.b16encode(message.key).decode()}:{base64.b16encode(message.iv).decode()}{tag}"
+                encrypted_key = RSA.encrypt_with_public_key(message.receiver_public_key_pem, key_iv_str)
 
                 encrypted_signature = AES.encrypt(str(message.signature), message.key, message.iv)
                 cipher_text = AES.encrypt(message.text, message.key, message.iv)
 
-                f.write(f"{encrypted_key.hex()}\n{encrypted_signature.hex()}\n{cipher_text.hex()}\n{border}")
+                f.write(f"{encrypted_key.hex()}\n{encrypted_signature.hex()}\n{cipher_text.hex()}{border}")
 
     @staticmethod
     def send_messages(messages:list["Message"], users_count:int)->None:
@@ -82,31 +83,35 @@ class Message(MessageHeader, MessageBody):
 
 
     @staticmethod
-    def decrypt_and_validate_key(private_key_pem:bytes, encrypted_key:bytes):
+    def decrypt_key(private_key_pem:bytes, encrypted_key:bytes):
         decrypted_key_iv = RSA.decrypt_with_private_key(private_key_pem, encrypted_key)
 
         if decrypted_key_iv.endswith(tag):
-            return bytes.fromhex(decrypted_key_iv[:32]), bytes.fromhex(decrypted_key_iv[32:-len(tag)])
+            key_iv_str = decrypted_key_iv[:-len(tag)]
+            key_b16, iv_b16 = key_iv_str.split(":")
+            return base64.b16decode(key_b16), base64.b16decode(iv_b16)
         else:
             raise Exception()
 
     @staticmethod
     def export_message(text:str, private_key_pem:bytes, username_public_key_map:dict[str, bytes])->MessageBody | None:
         payloads = text.split(border)
+        payloads.pop()
 
         for payload in payloads:
             encoded_encrypted_key, encoded_encrypted_signature, encoded_cipher_text = payload.split('\n')
             encrypted_key, encrypted_signature, cipher_text = bytes.fromhex(encoded_encrypted_key), bytes.fromhex(encoded_encrypted_signature), bytes.fromhex(encoded_cipher_text)
 
             try:
-                decrypted_key, decrypted_iv = Message.decrypt_and_validate_key(private_key_pem, encrypted_key)
+                decrypted_key, decrypted_iv = Message.decrypt_key(private_key_pem, encrypted_key)
 
-                signature_payload, signature_signed_payload = [ value for label, value in [ item.split(":")for item in AES.decrypt(encrypted_signature, decrypted_key, decrypted_iv).split("\n") ] ]
+                payload_part, signature_part = AES.decrypt(encrypted_signature, decrypted_key, decrypted_iv).split("\n")
+                signature_payload, signature_signed_payload = payload_part[9:], signature_part[10:-1]
                 text = AES.decrypt(cipher_text, decrypted_key, decrypted_iv)
                 
-                sender_username, receiver_username, _ = [ value for label, value in [ item.split(':') for item in signature_payload.split(',')[1:] ] ]
+                sender_username, receiver_username, _ = [ item.split(':')[1] for item in signature_payload.split(',')[1:] ]
 
-                if RSA.is_signature_valid(username_public_key_map[sender_username], signature_payload, bytes.fromhex(signature_signed_payload)):
+                if Signature(signature_payload, bytes.fromhex(signature_signed_payload)).is_signature_valid(username_public_key_map[sender_username]):
                     return MessageBody(sender_username, receiver_username, text)
             except:
                 continue

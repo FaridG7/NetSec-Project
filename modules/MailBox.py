@@ -115,7 +115,6 @@ class MailBox(Loader):
         exit(0)
 
     def login_shell(self)->None:
-        print([u.username for u in self.users])
         while True:
             username = self.console.input("[bold yellow]Enter Username[/bold yellow][bold orange](type 'exit' to exit):[/bold orange] ")
             if username == 'exit':
@@ -175,10 +174,10 @@ class MailBox(Loader):
             except PrivateKeyFileNotFound as e:
                 self.console.print(f"[bold red]{e}[/bold red]")
                 self.private_key_recovery_shell(password, salt)
-                if self.cached_user_private_key_pem is not None:
-                    self.inbox = Message.load_inbox(self.user.username, password, salt, self.cached_user_private_key_pem, self.users)
-                else:
-                    raise Exception()
+            if self.cached_user_private_key_pem is not None:
+                self.inbox = Message.load_inbox(self.user.username, password, salt, self.cached_user_private_key_pem, self.users)
+            else:
+                raise Exception()
 
     def private_key_recovery_shell(self, password:str, salt:bytes):
         if self.user is None:
@@ -209,7 +208,7 @@ class MailBox(Loader):
             "Inbox": self.inbox_shell,
             "Change password": self.change_password_shell,
             "Logout & Send message(s)": self.logout_and_send_messages,
-            "Logout But Don't Send message(s)": self.logout(),
+            "Logout without Sending message(s)": self.logout,
             "Help": self.help_shell,
         }
         action = self.prompt_user_for_an_action(list(action_map.keys()))
@@ -240,7 +239,7 @@ class MailBox(Loader):
 
             choices = [
                 {
-                    "name": f"ID: {getattr(msg, 'id', i+1)} | Time: {getattr(msg, 'timestamp', 'N/A')}",
+                    "name": f"ID: {getattr(msg, 'id', i+1)}",
                     "value": i
                 }
                 for i, msg in enumerate(self.inbox)
@@ -252,12 +251,11 @@ class MailBox(Loader):
                 choices=choices
             ).ask()
 
-            if selected is not None:
+            if isinstance(selected, int):
                 msg = self.inbox[selected]
                 message_details = (
                     f"[bold yellow]From:[/bold yellow] {msg.sender_username}\n"
                     f"[bold yellow]To:[/bold yellow] {msg.receiver_username}\n"
-                    f"[bold yellow]Time:[/bold yellow] {getattr(msg, 'timestamp', 'N/A')}\n"
                     f"[bold yellow]ID:[/bold yellow] {getattr(msg, 'id', selected+1)}\n"
                     f"\n[bold yellow]Text:[/bold yellow]\n{msg.text}"
                 )

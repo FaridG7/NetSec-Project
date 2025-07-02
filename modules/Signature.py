@@ -30,3 +30,6 @@ class Signature:
 
     def __str__(self):
         return f"(payload:{self.payload}\nsignature:{self.signed_payload.hex()})"
+
+    def is_signature_valid(self, public_key_pem:bytes)->bool:
+        return RSA.is_signature_valid(public_key_pem, hashlib.sha256(self.payload.encode()).hexdigest(), self.signed_payload)

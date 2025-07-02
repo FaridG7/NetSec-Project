@@ -64,10 +64,14 @@ class Safe:
     @staticmethod
     def store_old_inbox_locally(username:str, password:str, salt:bytes, inbox:list[MessageBody], latest_read_message_id:int)->None:
         path = Path('files/safe') / username / "old_inbox.enc"
+
         key, iv = AES.derive_key_and_iv_from_two_texts(password, salt)
+
         payloads = [f"{message.sender_username},{message.receiver_username}{seperator1}{message.text}{seperator1}" for message in inbox]
         payloads.append(f"{latest_read_message_id}")
+        
         cipher_text = AES.encrypt(seperator2.join(payloads), key, iv)
+        
         Safe.store_locally(path, cipher_text)
 
     @staticmethod
@@ -80,9 +84,12 @@ class Safe:
             plain_text =  AES.decrypt(cipher_text, key, iv)
             
             payloads = plain_text.split(seperator2)
+
             latest_read_message = int(payloads.pop())
+
             inbox_message_fragments = [payload.split(seperator1) for payload in payloads]
             inbox_messages =  [MessageBody(message_fragment[0], message_fragment[1], message_fragment[2]) for message_fragment in inbox_message_fragments]
+            
             return inbox_messages, latest_read_message
         except FileNotFoundError:
             return [], 0

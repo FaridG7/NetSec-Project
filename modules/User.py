@@ -91,4 +91,4 @@ class User:
         HelperUtilities.generate_private_key_backup_file(username, private_pem)
         User.dump_users_to_file(mutated_users)
 
-        return private_pem
+        return mutated_users, private_pem

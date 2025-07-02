@@ -49,7 +49,7 @@ class Message(MessageHeader, MessageBody):
         for _ in range(count):
             dummy_private_key_pem, dummy_public_key_pem = RSA.generate_pem_format_key_pair()
             random_text = HelperUtilities.generate_random_text(random.randint(messages_min_length, messages_max_length))
-            msg = Message(random_text,dummy_private_key_pem, "dummy", "dummy", dummy_public_key_pem)
+            msg = Message(random_text, dummy_private_key_pem, "dummy", "dummy", dummy_public_key_pem)
             fake_messages.append(msg)
         return fake_messages
     
@@ -70,8 +70,8 @@ class Message(MessageHeader, MessageBody):
 
     @staticmethod
     def send_messages(messages:list["Message"], users_count:int)->None:
-        messages_max_length = max(len(message.text) for message in messages)
-        messages_min_length = min(len(message.text) for message in messages)
+        messages_max_length = max((len(message.text) for message in messages), default=30)
+        messages_min_length = min((len(message.text) for message in messages), default=5)
 
         fake_messages = Message.generate_fake_messages(messages_min_length, messages_max_length, users_count - len(messages))
         

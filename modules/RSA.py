@@ -1,7 +1,7 @@
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.primitives import serialization, hashes
 from cryptography.hazmat.primitives.asymmetric import padding
-from cryptography.exceptions import InvalidSignature, UnsupportedAlgorithm, InvalidKey
+from cryptography.exceptions import InvalidSignature
 
 
 class RSA:
@@ -9,7 +9,7 @@ class RSA:
     def generate_pem_format_key_pair() -> tuple[bytes, bytes]:
         private_key = rsa.generate_private_key(
             public_exponent=65537,
-            key_size=1024
+            key_size=2048
         )
 
         private_pem = private_key.private_bytes(

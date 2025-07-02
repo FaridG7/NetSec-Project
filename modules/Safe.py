@@ -29,13 +29,14 @@ class Safe:
 
         hash_digest, salt_str = HelperUtilities.hash_password(password)
 
-        path = Path('files/safe') / username / "password.txt"
+        path = Path('files/safe') / username / "password_hash.enc"
         Safe.store_locally(path, hash_digest + salt_str)
+
         return hash_digest, salt_str
 
     @staticmethod
     def restore_local_password_hash(username:str):
-        path = Path('files/safe') / username / "password_hash.txt"
+        path = Path('files/safe') / username / "password_hash.enc"
         try:
             payload = Safe.restore_locally(path)
             return payload[:32], payload[32:]
@@ -44,14 +45,14 @@ class Safe:
 
     @staticmethod
     def store_private_key_locally(username:str, password:str, salt:bytes, private_key_pem:bytes)->None:
-        path = Path('files/safe') / username / "private_key.txt"
+        path = Path('files/safe') / username / "private_key.enc"
         key, iv = AES.derive_key_and_iv_from_two_texts(password, salt)
         cipher_text = AES.encrypt(private_key_pem.decode(), key, iv)
         Safe.store_locally(path, cipher_text)
 
     @staticmethod
     def restore_local_private_key(username:str, password:str, salt:bytes)->bytes:
-        path = Path('files/safe') / username / "private_key.txt"
+        path = Path('files/safe') / username / "private_key.enc"
         try:
             cipher_text = Safe.restore_locally(path)
             key, iv = AES.derive_key_and_iv_from_two_texts(password, salt)
@@ -62,7 +63,7 @@ class Safe:
     
     @staticmethod
     def store_old_inbox_locally(username:str, password:str, salt:bytes, inbox:list[MessageBody], latest_read_message_id:int)->None:
-        path = Path('files/safe') / username / "old_inbox.txt"
+        path = Path('files/safe') / username / "old_inbox.enc"
         key, iv = AES.derive_key_and_iv_from_two_texts(password, salt)
         payloads = [f"{message.sender_username},{message.receiver_username}{seperator1}{message.text}{seperator1}" for message in inbox]
         payloads.append(f"{latest_read_message_id}")
@@ -71,7 +72,7 @@ class Safe:
 
     @staticmethod
     def restore_local_old_inbox(username:str, password:str, salt:bytes)->(tuple[list[MessageBody], int]):
-        path = Path('files/safe') / username / "old_inbox.txt"
+        path = Path('files/safe') / username / "old_inbox.enc"
         try:
             cipher_text = Safe.restore_locally(path)
 
